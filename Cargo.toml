@@ -15,3 +15,4 @@ serde_json = "1.0.149"
 lto = true
 opt-level = 's'
 codegen-units = 1
+strip = true
