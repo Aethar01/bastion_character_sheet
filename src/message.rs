@@ -36,6 +36,8 @@ pub enum Message {
     AbilityTagsChanged(usize, String),
     AbilityDescChanged(usize, text_editor::Action),
     ToggleAbilityPrepared(usize, bool),
+    MoveAbilityUp(usize),
+    MoveAbilityDown(usize),
     ToggleEditor,
 }
 

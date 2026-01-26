@@ -397,7 +397,27 @@ fn view_abilities(state: &CharacterSheet) -> Element<'_, Message> {
             .spacing(5)
             .align_y(Alignment::Center)
         } else {
-            row![button("🗑").on_press(Message::RequestDeleteAbility(i))].align_y(Alignment::Center)
+            let up_btn = button("↑");
+            let up_btn = if i > 0 {
+                up_btn.on_press(Message::MoveAbilityUp(i))
+            } else {
+                up_btn
+            };
+
+            let down_btn = button("↓");
+            let down_btn = if i < state.character.abilities.len() - 1 {
+                down_btn.on_press(Message::MoveAbilityDown(i))
+            } else {
+                down_btn
+            };
+
+            row![
+                up_btn,
+                down_btn,
+                button("🗑").on_press(Message::RequestDeleteAbility(i))
+            ]
+            .spacing(5)
+            .align_y(Alignment::Center)
         };
 
         let header_row = row![

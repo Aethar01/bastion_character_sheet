@@ -314,6 +314,34 @@ impl CharacterSheet {
                     ab.prepared = val;
                 }
             }
+            Message::MoveAbilityUp(idx) => {
+                if idx > 0 && idx < self.character.abilities.len() {
+                    self.character.abilities.swap(idx, idx - 1);
+                    self.ability_editors.swap(idx, idx - 1);
+
+                    if let Some(del_idx) = self.deleting_ability_index {
+                        if del_idx == idx {
+                            self.deleting_ability_index = Some(idx - 1);
+                        } else if del_idx == idx - 1 {
+                            self.deleting_ability_index = Some(idx);
+                        }
+                    }
+                }
+            }
+            Message::MoveAbilityDown(idx) => {
+                if idx < self.character.abilities.len() - 1 {
+                    self.character.abilities.swap(idx, idx + 1);
+                    self.ability_editors.swap(idx, idx + 1);
+
+                    if let Some(del_idx) = self.deleting_ability_index {
+                        if del_idx == idx {
+                            self.deleting_ability_index = Some(idx + 1);
+                        } else if del_idx == idx + 1 {
+                            self.deleting_ability_index = Some(idx);
+                        }
+                    }
+                }
+            }
         }
         Task::none()
     }
