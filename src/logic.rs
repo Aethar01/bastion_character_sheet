@@ -9,9 +9,7 @@ pub fn calculate_max_hp(char: &Character) -> i32 {
 }
 
 pub fn calculate_movement_speed(char: &Character) -> i32 {
-    // "2 + half Dexterity rounded up"
     let dex_half = (char.attributes.dexterity as f32 / 2.0).ceil() as i32;
-    // Basic calculation, armor penalties handled elsewhere ideally, but this is base speed
     2 + dex_half
 }
 
@@ -72,7 +70,7 @@ pub fn get_origin_traits(origin: Origin) -> Vec<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{Attributes, Character, Origin};
+    use crate::model::{Character, Origin};
 
     #[test]
     fn test_hp_calculation() {
@@ -80,11 +78,9 @@ mod tests {
         char.level = 1;
         char.attributes.endurance = 2;
         
-        // Base: 2*1 + 3*2 = 8
         assert_eq!(calculate_max_hp(&char), 8);
 
         char.origin = Origin::GiantKin;
-        // Giant-kin: 3*1 + 3*2 = 9
         assert_eq!(calculate_max_hp(&char), 9);
     }
 
@@ -93,11 +89,9 @@ mod tests {
         let mut char = Character::default();
         char.attributes.strength = 3;
 
-        // Base: 4 + 3 = 7
         assert_eq!(calculate_carrying_slots(&char), 7);
 
         char.origin = Origin::Dwarf;
-        // Dwarf: 6 + 3 = 9
         assert_eq!(calculate_carrying_slots(&char), 9);
     }
 
@@ -105,15 +99,12 @@ mod tests {
     fn test_movement_speed() {
         let mut char = Character::default();
         
-        // Dex 1: ceil(0.5) = 1 -> 2 + 1 = 3
         char.attributes.dexterity = 1;
         assert_eq!(calculate_movement_speed(&char), 3);
 
-        // Dex 2: ceil(1.0) = 1 -> 2 + 1 = 3
         char.attributes.dexterity = 2;
         assert_eq!(calculate_movement_speed(&char), 3);
 
-        // Dex 3: ceil(1.5) = 2 -> 2 + 2 = 4
         char.attributes.dexterity = 3;
         assert_eq!(calculate_movement_speed(&char), 4);
     }

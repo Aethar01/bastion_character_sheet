@@ -103,7 +103,7 @@ pub struct Ability {
     pub name: String,
     pub description: String,
     pub ability_type: AbilityType,
-    pub tags: String, // e.g., "1 Action, Punish"
+    pub tags: String, 
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,10 +116,10 @@ pub struct Character {
     pub wounds: i32,
     pub xp: i32,
     pub tender: i32,
-    pub armor_bonus: i32, // Manual armor offset for AC
+    pub armor_bonus: i32,
     pub expended_spell_slots: i32,
     pub expended_miracle_slots: i32,
-    pub inventory: Vec<String>, // Each string is one slot content
+    pub inventory: Vec<String>,
     pub abilities: Vec<Ability>,
     pub notes: String,
 }
@@ -140,7 +140,7 @@ impl Default for Character {
             armor_bonus: 0,
             expended_spell_slots: 0,
             expended_miracle_slots: 0,
-            inventory: vec![String::new(); 20], // Pre-allocate some slots
+            inventory: vec![String::new(); 5],
             abilities: Vec::new(),
             notes: String::new(),
         }
