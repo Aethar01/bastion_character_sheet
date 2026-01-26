@@ -67,7 +67,8 @@ pub fn get_origin_traits(origin: Origin) -> Vec<&'static str> {
             "The magic of the forest suffuses Gnomes, allowing them to roll twice to resist the effects of spells (but not miracles), taking the best result, and also providing them the ability to communicate with small animals.",
         ],
         Origin::Halfling => vec![
-            "Halflings are small. As a consequence, treat their Strength as 2 lower for the purposes of overcoming the Heavy property of weapons.", "Move through spaces of >Small creatures",
+            "Halflings are small. As a consequence, treat their Strength as 2 lower for the purposes of overcoming the Heavy property of weapons.",
+            "Move through spaces of >Small creatures",
             "Halflings can move through spaces occupied by creatures bigger than small, and they can fit into smaller spaces than other origins.",
         ],
         Origin::GiantKin => vec![
@@ -87,7 +88,7 @@ mod tests {
         let mut char = Character::default();
         char.level = 1;
         char.attributes.endurance = 2;
-        
+
         assert_eq!(calculate_max_hp(&char), 8);
 
         char.origin = Origin::GiantKin;
@@ -100,7 +101,7 @@ mod tests {
         char.level = 1;
         char.attributes.endurance = 2;
         // Base: 8
-        
+
         char.wounds = 1;
         // 8 - (1 * 2) = 6
         assert_eq!(calculate_max_hp(&char), 6);
@@ -128,7 +129,7 @@ mod tests {
     #[test]
     fn test_movement_speed() {
         let mut char = Character::default();
-        
+
         char.attributes.dexterity = 1;
         assert_eq!(calculate_movement_speed(&char), 3);
 
@@ -142,7 +143,7 @@ mod tests {
     #[test]
     fn test_crit_range() {
         let mut char = Character::default();
-        
+
         char.attributes.luck = 0;
         assert_eq!(calculate_crit_range(&char), 12);
 

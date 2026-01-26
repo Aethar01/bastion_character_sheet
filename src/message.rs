@@ -5,12 +5,12 @@ use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub enum Message {
     NameChanged(String),
-    LevelChanged(String), 
+    LevelChanged(String),
     OriginSelected(Origin),
     AttributeChanged(AttributeField, i32),
     TenderChanged(String),
     ArmorBonusChanged(String),
-    
+
     HpInputChanged(String),
     HpModifierChanged(String),
     ApplyHpModifier(i32),

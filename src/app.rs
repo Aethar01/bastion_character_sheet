@@ -1,15 +1,15 @@
 use crate::logic;
 use crate::message::{AttributeField, Message};
 use crate::model::{Ability, AbilityType, Character, Origin};
-use iced::widget::text_editor;
 use iced::Task;
+use iced::widget::text_editor;
 use rfd::AsyncFileDialog;
 use std::fs;
 
 pub struct CharacterSheet {
     pub character: Character,
     pub is_editing: bool,
-    
+
     pub hp_input: String,
     pub hp_modifier: String,
     pub spells_input: String,
@@ -26,15 +26,23 @@ impl Default for CharacterSheet {
     fn default() -> Self {
         let character = Character::default();
         let hp = character.current_hp.to_string();
-        let spells = logic::calculate_spell_slots(&character).saturating_sub(character.expended_spell_slots).to_string();
-        let miracles = logic::calculate_miracle_slots(&character).saturating_sub(character.expended_miracle_slots).to_string();
+        let spells = logic::calculate_spell_slots(&character)
+            .saturating_sub(character.expended_spell_slots)
+            .to_string();
+        let miracles = logic::calculate_miracle_slots(&character)
+            .saturating_sub(character.expended_miracle_slots)
+            .to_string();
         let level = character.level.to_string();
         let tender = character.tender.to_string();
         let armor_bonus = character.armor_bonus.to_string();
-        let ability_editors = character.abilities.iter()
+        let ability_editors = character
+            .abilities
+            .iter()
             .map(|a| text_editor::Content::with_text(&a.description))
             .collect();
-        let inventory_editors = character.inventory.iter()
+        let inventory_editors = character
+            .inventory
+            .iter()
             .map(|i| text_editor::Content::with_text(i))
             .collect();
 
@@ -76,13 +84,13 @@ impl CharacterSheet {
                     self.character.tender = num;
                 }
             }
-             Message::ArmorBonusChanged(val) => {
+            Message::ArmorBonusChanged(val) => {
                 self.armor_bonus_input = val;
                 if let Ok(num) = self.armor_bonus_input.parse::<i32>() {
                     self.character.armor_bonus = num;
                 }
             }
-            
+
             Message::HpInputChanged(val) => {
                 self.hp_input = val;
                 if let Ok(num) = self.hp_input.parse::<i32>() {
@@ -107,8 +115,8 @@ impl CharacterSheet {
                 self.character.wounds = val.clamp(0, 4);
                 let max = logic::calculate_max_hp(&self.character);
                 if self.character.current_hp > max {
-                     self.character.current_hp = max;
-                     self.hp_input = max.to_string();
+                    self.character.current_hp = max;
+                    self.hp_input = max.to_string();
                 }
             }
 
@@ -116,7 +124,7 @@ impl CharacterSheet {
                 self.spells_input = val;
                 if let Ok(avail) = self.spells_input.parse::<i32>() {
                     let max = logic::calculate_spell_slots(&self.character);
-                    let expended = max.saturating_sub(avail).max(0); 
+                    let expended = max.saturating_sub(avail).max(0);
                     self.character.expended_spell_slots = expended;
                 }
             }
@@ -146,7 +154,7 @@ impl CharacterSheet {
             Message::OriginSelected(origin) => {
                 self.character.origin = origin;
                 if origin == Origin::Human && self.character.attributes.luck < 3 {
-                     self.character.attributes.luck = 3;
+                    self.character.attributes.luck = 3;
                 }
                 self.sync_inventory_editors();
             }
@@ -159,7 +167,9 @@ impl CharacterSheet {
                     AttributeField::Endurance => self.character.attributes.endurance = new_val,
                     AttributeField::Faith => self.character.attributes.faith = new_val,
                     AttributeField::Will => self.character.attributes.will = new_val,
-                    AttributeField::Intelligence => self.character.attributes.intelligence = new_val,
+                    AttributeField::Intelligence => {
+                        self.character.attributes.intelligence = new_val
+                    }
                     AttributeField::Luck => self.character.attributes.luck = new_val,
                 }
                 if field == AttributeField::Strength {
@@ -167,23 +177,29 @@ impl CharacterSheet {
                 }
             }
             Message::SaveCharacter => {
-                return Task::perform(async {
-                    let file = AsyncFileDialog::new()
-                        .add_filter("json", &["json"])
-                        .set_file_name("character.json")
-                        .save_file()
-                        .await;
-                    file.map(|f| f.path().to_owned())
-                }, Message::SaveFileSelected);
+                return Task::perform(
+                    async {
+                        let file = AsyncFileDialog::new()
+                            .add_filter("json", &["json"])
+                            .set_file_name("character.json")
+                            .save_file()
+                            .await;
+                        file.map(|f| f.path().to_owned())
+                    },
+                    Message::SaveFileSelected,
+                );
             }
             Message::LoadCharacter => {
-                return Task::perform(async {
-                    let file = AsyncFileDialog::new()
-                        .add_filter("json", &["json"])
-                        .pick_file()
-                        .await;
-                    file.map(|f| f.path().to_owned())
-                }, Message::LoadFileSelected);
+                return Task::perform(
+                    async {
+                        let file = AsyncFileDialog::new()
+                            .add_filter("json", &["json"])
+                            .pick_file()
+                            .await;
+                        file.map(|f| f.path().to_owned())
+                    },
+                    Message::LoadFileSelected,
+                );
             }
             Message::SaveFileSelected(path_opt) => {
                 if let Some(path) = path_opt {
@@ -199,16 +215,26 @@ impl CharacterSheet {
                             self.character = char;
                             self.hp_input = self.character.current_hp.to_string();
                             let s_max = logic::calculate_spell_slots(&self.character);
-                            self.spells_input = s_max.saturating_sub(self.character.expended_spell_slots).to_string();
+                            self.spells_input = s_max
+                                .saturating_sub(self.character.expended_spell_slots)
+                                .to_string();
                             let m_max = logic::calculate_miracle_slots(&self.character);
-                            self.miracles_input = m_max.saturating_sub(self.character.expended_miracle_slots).to_string();
+                            self.miracles_input = m_max
+                                .saturating_sub(self.character.expended_miracle_slots)
+                                .to_string();
                             self.level_input = self.character.level.to_string();
                             self.tender_input = self.character.tender.to_string();
                             self.armor_bonus_input = self.character.armor_bonus.to_string();
-                            self.ability_editors = self.character.abilities.iter()
+                            self.ability_editors = self
+                                .character
+                                .abilities
+                                .iter()
                                 .map(|a| text_editor::Content::with_text(&a.description))
                                 .collect();
-                            self.inventory_editors = self.character.inventory.iter()
+                            self.inventory_editors = self
+                                .character
+                                .inventory
+                                .iter()
                                 .map(|i| text_editor::Content::with_text(i))
                                 .collect();
                         }
@@ -247,7 +273,7 @@ impl CharacterSheet {
             }
             Message::ConfirmDeleteAbility => {
                 if let Some(idx) = self.deleting_ability_index {
-                     if idx < self.character.abilities.len() {
+                    if idx < self.character.abilities.len() {
                         self.character.abilities.remove(idx);
                     }
                     if idx < self.ability_editors.len() {
@@ -283,7 +309,7 @@ impl CharacterSheet {
                 }
             }
             Message::ToggleAbilityPrepared(idx, val) => {
-                 if let Some(ab) = self.character.abilities.get_mut(idx) {
+                if let Some(ab) = self.character.abilities.get_mut(idx) {
                     ab.prepared = val;
                 }
             }
@@ -294,10 +320,16 @@ impl CharacterSheet {
     fn sync_inventory_editors(&mut self) {
         let total_slots = logic::calculate_carrying_slots(&self.character);
         let display_count = total_slots.max(self.character.inventory.len() as i32) as usize;
-        
+
         while self.inventory_editors.len() < display_count {
-            let text = self.character.inventory.get(self.inventory_editors.len()).cloned().unwrap_or_default();
-            self.inventory_editors.push(text_editor::Content::with_text(&text));
+            let text = self
+                .character
+                .inventory
+                .get(self.inventory_editors.len())
+                .cloned()
+                .unwrap_or_default();
+            self.inventory_editors
+                .push(text_editor::Content::with_text(&text));
         }
     }
 }

@@ -135,7 +135,7 @@ impl Default for Character {
             level: 1,
             origin,
             attributes: attrs,
-            current_hp: 5, 
+            current_hp: 5,
             wounds: 0,
             xp: 0,
             tender: 200,
@@ -157,8 +157,9 @@ mod tests {
     fn test_character_serialization() {
         let char = Character::default();
         let serialized = serde_json::to_string(&char).expect("Should serialize");
-        let deserialized: Character = serde_json::from_str(&serialized).expect("Should deserialize");
-        
+        let deserialized: Character =
+            serde_json::from_str(&serialized).expect("Should deserialize");
+
         assert_eq!(char.name, deserialized.name);
         assert_eq!(char.attributes.strength, deserialized.attributes.strength);
         assert_eq!(char.origin, deserialized.origin);
