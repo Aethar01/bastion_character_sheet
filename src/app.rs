@@ -177,11 +177,12 @@ impl CharacterSheet {
                 }
             }
             Message::SaveCharacter => {
+                let default_name = format!("{}.json", self.character.name);
                 return Task::perform(
-                    async {
+                    async move {
                         let file = AsyncFileDialog::new()
                             .add_filter("json", &["json"])
-                            .set_file_name("character.json")
+                            .set_file_name(&default_name)
                             .save_file()
                             .await;
                         file.map(|f| f.path().to_owned())
