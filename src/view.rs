@@ -2,7 +2,7 @@ use crate::app::CharacterSheet;
 use crate::logic;
 use crate::message::{AttributeField, Message};
 use crate::model::{AbilityType, Origin};
-use iced::widget::{button, column, container, pick_list, row, scrollable, stack, text, text_input, Space};
+use iced::widget::{button, checkbox, column, container, pick_list, row, scrollable, stack, text, text_editor, text_input, Space};
 use iced::{Element, Length, Color, Alignment, alignment};
 
 pub fn view(state: &CharacterSheet) -> Element<'_, Message> {
@@ -81,6 +81,24 @@ fn view_vitals(state: &CharacterSheet) -> Element<'_, Message> {
     let spell_slots_max = logic::calculate_spell_slots(&state.character);
     let miracle_slots_max = logic::calculate_miracle_slots(&state.character);
 
+    // Wounds Row
+    let wounds_row = row![
+        text("Wounds:"),
+        row(
+            (1..=4).map(|i| {
+                checkbox(state.character.wounds >= i)
+                    .on_toggle(move |checked| {
+                        if checked {
+                            Message::WoundsChanged(i)
+                        } else {
+                            Message::WoundsChanged(i - 1)
+                        }
+                    })
+                    .into()
+            })
+        ).spacing(10)
+    ].spacing(10).align_y(Alignment::Center);
+
     let hp_row = row![
         text("HP:").width(20),
         text_input("HP", &state.hp_input)
@@ -113,6 +131,7 @@ fn view_vitals(state: &CharacterSheet) -> Element<'_, Message> {
 
     column![
         text("Vitals").size(24),
+        wounds_row,
         hp_row,
         row![text("Speed:"), text(speed.to_string()).size(20)].spacing(10).align_y(Alignment::Center),
         row![text("AC:"), text(ac.to_string()).size(20), text("(+"), text_input("0", &state.armor_bonus_input).on_input(Message::ArmorBonusChanged).width(40), text("Armor)")].spacing(5).align_y(Alignment::Center),
@@ -207,7 +226,7 @@ fn view_inventory(state: &CharacterSheet) -> Element<'_, Message> {
     let mut slots_col = column![].spacing(5);
     
     for i in 0..display_count {
-        let val = state.character.inventory.get(i).cloned().unwrap_or_default();
+        let editor_content = state.inventory_editors.get(i).expect("Inventory editor should exist");
         let label = if i < total_slots as usize {
             format!("{}.", i + 1)
         } else {
@@ -217,8 +236,10 @@ fn view_inventory(state: &CharacterSheet) -> Element<'_, Message> {
         slots_col = slots_col.push(
             row![
                 text(label).width(80),
-                text_input("Empty slot...", &val)
-                    .on_input(move |s| Message::InventorySlotChanged(i, s))
+                text_editor(editor_content)
+                    .placeholder("Empty slot...")
+                    .height(Length::Shrink)
+                    .on_action(move |a| Message::InventoryAction(i, a))
             ].align_y(Alignment::Center)
         );
     }
@@ -232,8 +253,23 @@ fn view_inventory(state: &CharacterSheet) -> Element<'_, Message> {
 fn view_abilities(state: &CharacterSheet) -> Element<'_, Message> {
     let mut list = column![].spacing(20);
 
+    let prepared_count = state.character.abilities.iter().filter(|a| a.prepared).count();
+    let max_prepared = logic::calculate_prepared_slots(&state.character);
+
     for (i, ability) in state.character.abilities.iter().enumerate() {
+        let delete_btn = if state.deleting_ability_index == Some(i) {
+             row![
+                text("Sure?"),
+                button("Yes").on_press(Message::ConfirmDeleteAbility),
+                button("No").on_press(Message::CancelDeleteAbility),
+            ].spacing(5).align_y(Alignment::Center)
+        } else {
+             row![button("🗑").on_press(Message::RequestDeleteAbility(i))].align_y(Alignment::Center)
+        };
+
         let header_row = row![
+            checkbox(ability.prepared)
+                .on_toggle(move |b| Message::ToggleAbilityPrepared(i, b)),
             text_input("Ability Name", &ability.name)
                 .on_input(move |s| Message::AbilityNameChanged(i, s))
                 .width(Length::FillPortion(2)),
@@ -242,14 +278,18 @@ fn view_abilities(state: &CharacterSheet) -> Element<'_, Message> {
                 Some(ability.ability_type.clone()),
                 move |t| Message::AbilityTypeChanged(i, t)
             ).width(Length::FillPortion(1)),
-            button("Remove").on_press(Message::RemoveAbility(i))
-        ].spacing(10);
+            delete_btn
+        ].spacing(10).align_y(Alignment::Center);
+
+        let editor_content = state.ability_editors.get(i).expect("Editor should exist for ability");
 
         let details = column![
             text_input("Tags (e.g. 1 Action, Punish)", &ability.tags)
                 .on_input(move |s| Message::AbilityTagsChanged(i, s)),
-            text_input("Description", &ability.description)
-                .on_input(move |s| Message::AbilityDescChanged(i, s)),
+            text_editor(editor_content)
+                .placeholder("Description")
+                .height(Length::Shrink)
+                .on_action(move |a| Message::AbilityDescChanged(i, a)),
         ].spacing(5);
 
         list = list.push(
@@ -262,8 +302,9 @@ fn view_abilities(state: &CharacterSheet) -> Element<'_, Message> {
     column![
         row![
             text("Abilities").size(24),
+            text(format!("(Prepared: {}/{})", prepared_count, max_prepared)).size(20),
             button("Add Ability").on_press(Message::AddAbility)
-        ].spacing(20),
+        ].spacing(20).align_y(Alignment::Center),
         list
     ].padding(10).spacing(20).width(Length::FillPortion(1)).into()
 }

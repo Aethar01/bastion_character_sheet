@@ -1,4 +1,5 @@
 use crate::model::{AbilityType, Origin};
+use iced::widget::text_editor;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -14,6 +15,8 @@ pub enum Message {
     HpModifierChanged(String),
     ApplyHpModifier(i32),
 
+    WoundsChanged(i32),
+
     SpellsInputChanged(String),
     MiraclesInputChanged(String),
     AdjustSpells(i32),
@@ -23,17 +26,20 @@ pub enum Message {
     LoadCharacter,
     SaveFileSelected(Option<PathBuf>),
     LoadFileSelected(Option<PathBuf>),
-    InventorySlotChanged(usize, String),
+    InventoryAction(usize, text_editor::Action),
     AddAbility,
-    RemoveAbility(usize),
+    RequestDeleteAbility(usize),
+    ConfirmDeleteAbility,
+    CancelDeleteAbility,
     AbilityNameChanged(usize, String),
     AbilityTypeChanged(usize, AbilityType),
     AbilityTagsChanged(usize, String),
-    AbilityDescChanged(usize, String),
+    AbilityDescChanged(usize, text_editor::Action),
+    ToggleAbilityPrepared(usize, bool),
     ToggleEditor,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttributeField {
     Strength,
     Dexterity,

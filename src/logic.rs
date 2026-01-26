@@ -2,10 +2,11 @@ use crate::model::{Character, Origin};
 
 pub fn calculate_max_hp(char: &Character) -> i32 {
     let base = 2 * char.level + 3 * char.attributes.endurance;
-    match char.origin {
+    let max = match char.origin {
         Origin::GiantKin => 3 * char.level + 3 * char.attributes.endurance,
         _ => base,
-    }
+    };
+    (max - (char.wounds * char.attributes.endurance)).max(1)
 }
 
 pub fn calculate_movement_speed(char: &Character) -> i32 {
@@ -19,6 +20,10 @@ pub fn calculate_carrying_slots(char: &Character) -> i32 {
         Origin::Dwarf => 6 + char.attributes.strength,
         _ => base,
     }
+}
+
+pub fn calculate_prepared_slots(char: &Character) -> i32 {
+    2 + char.level
 }
 
 pub fn calculate_spell_slots(char: &Character) -> i32 {
@@ -82,6 +87,26 @@ mod tests {
 
         char.origin = Origin::GiantKin;
         assert_eq!(calculate_max_hp(&char), 9);
+    }
+
+    #[test]
+    fn test_hp_calculation_with_wounds() {
+        let mut char = Character::default();
+        char.level = 1;
+        char.attributes.endurance = 2;
+        // Base: 8
+        
+        char.wounds = 1;
+        // 8 - (1 * 2) = 6
+        assert_eq!(calculate_max_hp(&char), 6);
+
+        char.wounds = 3;
+        // 8 - (3 * 2) = 2
+        assert_eq!(calculate_max_hp(&char), 2);
+
+        char.wounds = 4;
+        // 8 - (4 * 2) = 0 -> clamped to 1
+        assert_eq!(calculate_max_hp(&char), 1);
     }
 
     #[test]

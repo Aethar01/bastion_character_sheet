@@ -1,6 +1,7 @@
 use crate::logic;
 use crate::message::{AttributeField, Message};
 use crate::model::{Ability, AbilityType, Character, Origin};
+use iced::widget::text_editor;
 use iced::Task;
 use rfd::AsyncFileDialog;
 use std::fs;
@@ -16,6 +17,9 @@ pub struct CharacterSheet {
     pub level_input: String,
     pub tender_input: String,
     pub armor_bonus_input: String,
+    pub ability_editors: Vec<text_editor::Content>,
+    pub inventory_editors: Vec<text_editor::Content>,
+    pub deleting_ability_index: Option<usize>,
 }
 
 impl Default for CharacterSheet {
@@ -27,6 +31,12 @@ impl Default for CharacterSheet {
         let level = character.level.to_string();
         let tender = character.tender.to_string();
         let armor_bonus = character.armor_bonus.to_string();
+        let ability_editors = character.abilities.iter()
+            .map(|a| text_editor::Content::with_text(&a.description))
+            .collect();
+        let inventory_editors = character.inventory.iter()
+            .map(|i| text_editor::Content::with_text(i))
+            .collect();
 
         Self {
             character,
@@ -38,6 +48,9 @@ impl Default for CharacterSheet {
             level_input: level,
             tender_input: tender,
             armor_bonus_input: armor_bonus,
+            ability_editors,
+            inventory_editors,
+            deleting_ability_index: None,
         }
     }
 }
@@ -90,6 +103,15 @@ impl CharacterSheet {
                 }
             }
 
+            Message::WoundsChanged(val) => {
+                self.character.wounds = val.clamp(0, 4);
+                let max = logic::calculate_max_hp(&self.character);
+                if self.character.current_hp > max {
+                     self.character.current_hp = max;
+                     self.hp_input = max.to_string();
+                }
+            }
+
             Message::SpellsInputChanged(val) => {
                 self.spells_input = val;
                 if let Ok(avail) = self.spells_input.parse::<i32>() {
@@ -126,6 +148,7 @@ impl CharacterSheet {
                 if origin == Origin::Human && self.character.attributes.luck < 3 {
                      self.character.attributes.luck = 3;
                 }
+                self.sync_inventory_editors();
             }
             Message::AttributeChanged(field, val) => {
                 let max = (self.character.level + 3).min(10);
@@ -138,6 +161,9 @@ impl CharacterSheet {
                     AttributeField::Will => self.character.attributes.will = new_val,
                     AttributeField::Intelligence => self.character.attributes.intelligence = new_val,
                     AttributeField::Luck => self.character.attributes.luck = new_val,
+                }
+                if field == AttributeField::Strength {
+                    self.sync_inventory_editors();
                 }
             }
             Message::SaveCharacter => {
@@ -179,18 +205,31 @@ impl CharacterSheet {
                             self.level_input = self.character.level.to_string();
                             self.tender_input = self.character.tender.to_string();
                             self.armor_bonus_input = self.character.armor_bonus.to_string();
+                            self.ability_editors = self.character.abilities.iter()
+                                .map(|a| text_editor::Content::with_text(&a.description))
+                                .collect();
+                            self.inventory_editors = self.character.inventory.iter()
+                                .map(|i| text_editor::Content::with_text(i))
+                                .collect();
                         }
                     }
                 }
             }
-            Message::InventorySlotChanged(idx, text) => {
-                if idx < self.character.inventory.len() {
-                    self.character.inventory[idx] = text;
-                } else {
-                    while self.character.inventory.len() <= idx {
-                        self.character.inventory.push(String::new());
+            Message::InventoryAction(idx, action) => {
+                while self.inventory_editors.len() <= idx {
+                    self.inventory_editors.push(text_editor::Content::new());
+                }
+                if let Some(editor) = self.inventory_editors.get_mut(idx) {
+                    editor.perform(action);
+                    let text = editor.text();
+                    if idx < self.character.inventory.len() {
+                        self.character.inventory[idx] = text;
+                    } else {
+                        while self.character.inventory.len() <= idx {
+                            self.character.inventory.push(String::new());
+                        }
+                        self.character.inventory[idx] = text;
                     }
-                    self.character.inventory[idx] = text;
                 }
             }
             Message::AddAbility => {
@@ -199,12 +238,26 @@ impl CharacterSheet {
                     ability_type: AbilityType::Passive,
                     tags: String::new(),
                     description: String::new(),
+                    prepared: false,
                 });
+                self.ability_editors.push(text_editor::Content::new());
             }
-            Message::RemoveAbility(idx) => {
-                if idx < self.character.abilities.len() {
-                    self.character.abilities.remove(idx);
+            Message::RequestDeleteAbility(idx) => {
+                self.deleting_ability_index = Some(idx);
+            }
+            Message::ConfirmDeleteAbility => {
+                if let Some(idx) = self.deleting_ability_index {
+                     if idx < self.character.abilities.len() {
+                        self.character.abilities.remove(idx);
+                    }
+                    if idx < self.ability_editors.len() {
+                        self.ability_editors.remove(idx);
+                    }
                 }
+                self.deleting_ability_index = None;
+            }
+            Message::CancelDeleteAbility => {
+                self.deleting_ability_index = None;
             }
             Message::AbilityNameChanged(idx, val) => {
                 if let Some(ab) = self.character.abilities.get_mut(idx) {
@@ -221,12 +274,30 @@ impl CharacterSheet {
                     ab.tags = val;
                 }
             }
-            Message::AbilityDescChanged(idx, val) => {
-                if let Some(ab) = self.character.abilities.get_mut(idx) {
-                    ab.description = val;
+            Message::AbilityDescChanged(idx, action) => {
+                if let Some(editor) = self.ability_editors.get_mut(idx) {
+                    editor.perform(action);
+                    if let Some(ab) = self.character.abilities.get_mut(idx) {
+                        ab.description = editor.text();
+                    }
+                }
+            }
+            Message::ToggleAbilityPrepared(idx, val) => {
+                 if let Some(ab) = self.character.abilities.get_mut(idx) {
+                    ab.prepared = val;
                 }
             }
         }
         Task::none()
+    }
+
+    fn sync_inventory_editors(&mut self) {
+        let total_slots = logic::calculate_carrying_slots(&self.character);
+        let display_count = total_slots.max(self.character.inventory.len() as i32) as usize;
+        
+        while self.inventory_editors.len() < display_count {
+            let text = self.character.inventory.get(self.inventory_editors.len()).cloned().unwrap_or_default();
+            self.inventory_editors.push(text_editor::Content::with_text(&text));
+        }
     }
 }

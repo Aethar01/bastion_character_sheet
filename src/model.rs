@@ -103,7 +103,9 @@ pub struct Ability {
     pub name: String,
     pub description: String,
     pub ability_type: AbilityType,
-    pub tags: String, 
+    pub tags: String,
+    #[serde(default)]
+    pub prepared: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
