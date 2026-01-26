@@ -78,6 +78,7 @@ fn view_vitals(state: &CharacterSheet) -> Element<'_, Message> {
     let max_hp = logic::calculate_max_hp(&state.character);
     let speed = logic::calculate_movement_speed(&state.character);
     let ac = logic::calculate_armor_class(&state.character);
+    let crit_start = logic::calculate_crit_range(&state.character);
     let spell_slots_max = logic::calculate_spell_slots(&state.character);
     let miracle_slots_max = logic::calculate_miracle_slots(&state.character);
 
@@ -135,6 +136,7 @@ fn view_vitals(state: &CharacterSheet) -> Element<'_, Message> {
         hp_row,
         row![text("Speed:"), text(speed.to_string()).size(20)].spacing(10).align_y(Alignment::Center),
         row![text("AC:"), text(ac.to_string()).size(20), text("(+"), text_input("0", &state.armor_bonus_input).on_input(Message::ArmorBonusChanged).width(40), text("Armor)")].spacing(5).align_y(Alignment::Center),
+        row![text("Crit Range:"), text(if crit_start == 12 { "12".to_string() } else { format!("{}-12", crit_start) }).size(20)].spacing(10).align_y(Alignment::Center),
         row![text("Tender:"), text_input("200", &state.tender_input).on_input(Message::TenderChanged).width(80)].spacing(10).align_y(Alignment::Center),
         Space::new().height(20),
         text("Resources").size(24),

@@ -38,6 +38,11 @@ pub fn calculate_armor_class(char: &Character) -> i32 {
     6 + char.attributes.dexterity + char.armor_bonus
 }
 
+pub fn calculate_crit_range(char: &Character) -> i32 {
+    let bonus = char.attributes.luck / 2;
+    12 - bonus
+}
+
 pub fn get_origin_traits(origin: Origin) -> Vec<&'static str> {
     match origin {
         Origin::Human => vec!["Humans starting Luck is 3."],
@@ -132,5 +137,22 @@ mod tests {
 
         char.attributes.dexterity = 3;
         assert_eq!(calculate_movement_speed(&char), 4);
+    }
+
+    #[test]
+    fn test_crit_range() {
+        let mut char = Character::default();
+        
+        char.attributes.luck = 0;
+        assert_eq!(calculate_crit_range(&char), 12);
+
+        char.attributes.luck = 1;
+        assert_eq!(calculate_crit_range(&char), 12);
+
+        char.attributes.luck = 2;
+        assert_eq!(calculate_crit_range(&char), 11);
+
+        char.attributes.luck = 6;
+        assert_eq!(calculate_crit_range(&char), 9);
     }
 }
