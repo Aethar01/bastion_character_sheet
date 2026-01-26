@@ -84,7 +84,6 @@ fn view_vitals(state: &CharacterSheet) -> Element<'_, Message> {
     let spell_slots_max = logic::calculate_spell_slots(&state.character);
     let miracle_slots_max = logic::calculate_miracle_slots(&state.character);
 
-    // Wounds Row
     let wounds_row = row![
         text("Wounds:"),
         row((1..=4).map(|i| {
