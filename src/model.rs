@@ -119,6 +119,22 @@ pub struct Character {
     pub xp: i32,
     pub tender: i32,
     pub armor_bonus: i32,
+    #[serde(default)]
+    pub max_hp_offset: i32,
+    #[serde(default)]
+    pub speed_offset: i32,
+    #[serde(default)]
+    pub max_inventory_slots_offset: i32,
+    #[serde(default)]
+    pub max_abilities_offset: i32,
+    #[serde(default)]
+    pub max_spells_offset: i32,
+    #[serde(default)]
+    pub max_miracles_offset: i32,
+    #[serde(default)]
+    pub crit_range_offset: i32,
+    #[serde(default)]
+    pub dr: String,
     pub expended_spell_slots: i32,
     pub expended_miracle_slots: i32,
     pub inventory: Vec<String>,
@@ -140,6 +156,14 @@ impl Default for Character {
             xp: 0,
             tender: 200,
             armor_bonus: 0,
+            max_hp_offset: 0,
+            speed_offset: 0,
+            max_inventory_slots_offset: 0,
+            max_abilities_offset: 0,
+            max_spells_offset: 0,
+            max_miracles_offset: 0,
+            crit_range_offset: 0,
+            dr: String::new(),
             expended_spell_slots: 0,
             expended_miracle_slots: 0,
             inventory: vec![String::new(); 5],

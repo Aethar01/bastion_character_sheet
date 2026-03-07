@@ -1,12 +1,12 @@
 use crate::app::CharacterSheet;
 use crate::logic;
-use crate::message::{AttributeField, Message};
+use crate::message::{AttributeField, Message, OffsetField};
 use crate::model::{AbilityType, Origin};
 use iced::widget::{
-    Space, button, checkbox, column, container, pick_list, row, scrollable, stack, text,
-    text_editor, text_input,
+    button, checkbox, column, container, pick_list, row, scrollable, stack, text, text_editor,
+    text_input, Space,
 };
-use iced::{Alignment, Color, Element, Length, alignment};
+use iced::{alignment, Alignment, Color, Element, Length};
 
 pub fn view(state: &CharacterSheet) -> Element<'_, Message> {
     let content = scrollable(
@@ -153,7 +153,12 @@ fn view_vitals(state: &CharacterSheet) -> Element<'_, Message> {
             text_input("0", &state.armor_bonus_input)
                 .on_input(Message::ArmorBonusChanged)
                 .width(40),
-            text("Armor)")
+            text("Armor)"),
+            Space::new().width(10),
+            text("DR:"),
+            text_input("e.g. 5/holy", &state.dr_input)
+                .on_input(Message::DrChanged)
+                .width(100)
         ]
         .spacing(5)
         .align_y(Alignment::Center),
@@ -231,6 +236,18 @@ fn view_editor(state: &CharacterSheet) -> Element<'_, Message> {
         .align_y(Alignment::Center)
     };
 
+    let offset_row = |label: &'static str, val: &String, field: OffsetField| {
+        row![
+            text(label).width(150),
+            text_input("+0", val)
+                .on_input(move |s| Message::OffsetChanged(field, s))
+                .width(60)
+                .align_x(alignment::Horizontal::Center)
+        ]
+        .spacing(10)
+        .align_y(Alignment::Center)
+    };
+
     let content = column![
         text("Edit Character").size(30),
         row![
@@ -257,45 +274,87 @@ fn view_editor(state: &CharacterSheet) -> Element<'_, Message> {
         ]
         .spacing(10)
         .align_y(Alignment::Center),
-        column![
-            text("Attributes").size(20),
-            attr_row(
-                "Strength",
-                state.character.attributes.strength,
-                AttributeField::Strength
-            ),
-            attr_row(
-                "Dexterity",
-                state.character.attributes.dexterity,
-                AttributeField::Dexterity
-            ),
-            attr_row(
-                "Endurance",
-                state.character.attributes.endurance,
-                AttributeField::Endurance
-            ),
-            attr_row(
-                "Faith",
-                state.character.attributes.faith,
-                AttributeField::Faith
-            ),
-            attr_row(
-                "Will",
-                state.character.attributes.will,
-                AttributeField::Will
-            ),
-            attr_row(
-                "Intelligence",
-                state.character.attributes.intelligence,
-                AttributeField::Intelligence
-            ),
-            attr_row(
-                "Luck",
-                state.character.attributes.luck,
-                AttributeField::Luck
-            ),
+        row![
+            column![
+                text("Attributes").size(20),
+                attr_row(
+                    "Strength",
+                    state.character.attributes.strength,
+                    AttributeField::Strength
+                ),
+                attr_row(
+                    "Dexterity",
+                    state.character.attributes.dexterity,
+                    AttributeField::Dexterity
+                ),
+                attr_row(
+                    "Endurance",
+                    state.character.attributes.endurance,
+                    AttributeField::Endurance
+                ),
+                attr_row(
+                    "Faith",
+                    state.character.attributes.faith,
+                    AttributeField::Faith
+                ),
+                attr_row(
+                    "Will",
+                    state.character.attributes.will,
+                    AttributeField::Will
+                ),
+                attr_row(
+                    "Intelligence",
+                    state.character.attributes.intelligence,
+                    AttributeField::Intelligence
+                ),
+                attr_row(
+                    "Luck",
+                    state.character.attributes.luck,
+                    AttributeField::Luck
+                ),
+            ]
+            .spacing(10),
+            column![
+                text("Derived Stat Overrides").size(20),
+                offset_row(
+                    "Speed Offset",
+                    &state.speed_offset_input,
+                    OffsetField::Speed
+                ),
+                offset_row(
+                    "Crit Range Offset",
+                    &state.crit_range_offset_input,
+                    OffsetField::CritRange
+                ),
+                offset_row(
+                    "Max Spells Offset",
+                    &state.max_spells_offset_input,
+                    OffsetField::MaxSpells
+                ),
+                offset_row(
+                    "Max Miracles Offset",
+                    &state.max_miracles_offset_input,
+                    OffsetField::MaxMiracles
+                ),
+                offset_row(
+                    "Max Abilities Offset",
+                    &state.max_abilities_offset_input,
+                    OffsetField::MaxAbilities
+                ),
+                offset_row(
+                    "Max Inventory Slots Offset",
+                    &state.max_inventory_slots_offset_input,
+                    OffsetField::MaxInventorySlots
+                ),
+                offset_row(
+                    "Max HP Offset",
+                    &state.max_hp_offset_input,
+                    OffsetField::MaxHp
+                ),
+            ]
+            .spacing(10)
         ]
-        .spacing(10),
+        .spacing(40),
         button("Done").on_press(Message::ToggleEditor)
     ]
     .spacing(20)

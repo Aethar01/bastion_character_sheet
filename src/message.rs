@@ -10,6 +10,7 @@ pub enum Message {
     AttributeChanged(AttributeField, i32),
     TenderChanged(String),
     ArmorBonusChanged(String),
+    DrChanged(String),
 
     HpInputChanged(String),
     HpModifierChanged(String),
@@ -39,6 +40,18 @@ pub enum Message {
     MoveAbilityUp(usize),
     MoveAbilityDown(usize),
     ToggleEditor,
+    OffsetChanged(OffsetField, String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OffsetField {
+    MaxHp,
+    Speed,
+    MaxInventorySlots,
+    MaxAbilities,
+    MaxSpells,
+    MaxMiracles,
+    CritRange,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

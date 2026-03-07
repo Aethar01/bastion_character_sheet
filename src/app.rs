@@ -17,6 +17,14 @@ pub struct CharacterSheet {
     pub level_input: String,
     pub tender_input: String,
     pub armor_bonus_input: String,
+    pub dr_input: String,
+    pub max_hp_offset_input: String,
+    pub speed_offset_input: String,
+    pub max_inventory_slots_offset_input: String,
+    pub max_abilities_offset_input: String,
+    pub max_spells_offset_input: String,
+    pub max_miracles_offset_input: String,
+    pub crit_range_offset_input: String,
     pub ability_editors: Vec<text_editor::Content>,
     pub inventory_editors: Vec<text_editor::Content>,
     pub deleting_ability_index: Option<usize>,
@@ -35,6 +43,14 @@ impl Default for CharacterSheet {
         let level = character.level.to_string();
         let tender = character.tender.to_string();
         let armor_bonus = character.armor_bonus.to_string();
+        let dr_input = character.dr.clone();
+        let max_hp_offset = character.max_hp_offset.to_string();
+        let speed_offset = character.speed_offset.to_string();
+        let max_inventory_slots_offset = character.max_inventory_slots_offset.to_string();
+        let max_abilities_offset = character.max_abilities_offset.to_string();
+        let max_spells_offset = character.max_spells_offset.to_string();
+        let max_miracles_offset = character.max_miracles_offset.to_string();
+        let crit_range_offset = character.crit_range_offset.to_string();
         let ability_editors = character
             .abilities
             .iter()
@@ -56,6 +72,14 @@ impl Default for CharacterSheet {
             level_input: level,
             tender_input: tender,
             armor_bonus_input: armor_bonus,
+            dr_input,
+            max_hp_offset_input: max_hp_offset,
+            speed_offset_input: speed_offset,
+            max_inventory_slots_offset_input: max_inventory_slots_offset,
+            max_abilities_offset_input: max_abilities_offset,
+            max_spells_offset_input: max_spells_offset,
+            max_miracles_offset_input: max_miracles_offset,
+            crit_range_offset_input: crit_range_offset,
             ability_editors,
             inventory_editors,
             deleting_ability_index: None,
@@ -65,7 +89,9 @@ impl Default for CharacterSheet {
 
 impl CharacterSheet {
     pub fn new() -> (Self, Task<Message>) {
-        (Self::default(), Task::none())
+        let mut sheet = Self::default();
+        sheet.sync_inventory_editors();
+        (sheet, Task::none())
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -88,6 +114,66 @@ impl CharacterSheet {
                 self.armor_bonus_input = val;
                 if let Ok(num) = self.armor_bonus_input.parse::<i32>() {
                     self.character.armor_bonus = num;
+                }
+            }
+            Message::DrChanged(val) => {
+                self.dr_input = val.clone();
+                self.character.dr = val;
+            }
+            Message::OffsetChanged(field, val) => {
+                let parsed = if val.trim().is_empty() || val.trim() == "+" {
+                    Ok(0)
+                } else if val.trim() == "-" {
+                    // Allow typing negative numbers
+                    Err(())
+                } else {
+                    val.parse::<i32>().map_err(|_| ())
+                };
+
+                match field {
+                    crate::message::OffsetField::MaxHp => {
+                        self.max_hp_offset_input = val;
+                        if let Ok(num) = parsed {
+                            self.character.max_hp_offset = num;
+                        }
+                    }
+                    crate::message::OffsetField::Speed => {
+                        self.speed_offset_input = val;
+                        if let Ok(num) = parsed {
+                            self.character.speed_offset = num;
+                        }
+                    }
+                    crate::message::OffsetField::MaxInventorySlots => {
+                        self.max_inventory_slots_offset_input = val;
+                        if let Ok(num) = parsed {
+                            self.character.max_inventory_slots_offset = num;
+                            self.sync_inventory_editors();
+                        }
+                    }
+                    crate::message::OffsetField::MaxAbilities => {
+                        self.max_abilities_offset_input = val;
+                        if let Ok(num) = parsed {
+                            self.character.max_abilities_offset = num;
+                        }
+                    }
+                    crate::message::OffsetField::MaxSpells => {
+                        self.max_spells_offset_input = val;
+                        if let Ok(num) = parsed {
+                            self.character.max_spells_offset = num;
+                        }
+                    }
+                    crate::message::OffsetField::MaxMiracles => {
+                        self.max_miracles_offset_input = val;
+                        if let Ok(num) = parsed {
+                            self.character.max_miracles_offset = num;
+                        }
+                    }
+                    crate::message::OffsetField::CritRange => {
+                        self.crit_range_offset_input = val;
+                        if let Ok(num) = parsed {
+                            self.character.crit_range_offset = num;
+                        }
+                    }
                 }
             }
 
@@ -226,6 +312,19 @@ impl CharacterSheet {
                             self.level_input = self.character.level.to_string();
                             self.tender_input = self.character.tender.to_string();
                             self.armor_bonus_input = self.character.armor_bonus.to_string();
+                            self.dr_input = self.character.dr.clone();
+                            self.max_hp_offset_input = self.character.max_hp_offset.to_string();
+                            self.speed_offset_input = self.character.speed_offset.to_string();
+                            self.max_inventory_slots_offset_input =
+                                self.character.max_inventory_slots_offset.to_string();
+                            self.max_abilities_offset_input =
+                                self.character.max_abilities_offset.to_string();
+                            self.max_spells_offset_input =
+                                self.character.max_spells_offset.to_string();
+                            self.max_miracles_offset_input =
+                                self.character.max_miracles_offset.to_string();
+                            self.crit_range_offset_input =
+                                self.character.crit_range_offset.to_string();
                             self.ability_editors = self
                                 .character
                                 .abilities
@@ -238,6 +337,7 @@ impl CharacterSheet {
                                 .iter()
                                 .map(|i| text_editor::Content::with_text(i))
                                 .collect();
+                            self.sync_inventory_editors();
                         }
                     }
                 }

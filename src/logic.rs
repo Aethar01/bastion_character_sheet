@@ -6,32 +6,33 @@ pub fn calculate_max_hp(char: &Character) -> i32 {
         Origin::GiantKin => 3 * char.level + 3 * char.attributes.endurance,
         _ => base,
     };
-    (max - (char.wounds * char.attributes.endurance)).max(1)
+    (max - (char.wounds * char.attributes.endurance) + char.max_hp_offset).max(1)
 }
 
 pub fn calculate_movement_speed(char: &Character) -> i32 {
     let dex_half = (char.attributes.dexterity as f32 / 2.0).ceil() as i32;
-    2 + dex_half
+    (2 + dex_half + char.speed_offset).max(0)
 }
 
 pub fn calculate_carrying_slots(char: &Character) -> i32 {
     let base = 4 + char.attributes.strength;
-    match char.origin {
+    let total = match char.origin {
         Origin::Dwarf => 6 + char.attributes.strength,
         _ => base,
-    }
+    };
+    (total + char.max_inventory_slots_offset).max(0)
 }
 
 pub fn calculate_prepared_slots(char: &Character) -> i32 {
-    2 + char.level
+    (2 + char.level + char.max_abilities_offset).max(0)
 }
 
 pub fn calculate_spell_slots(char: &Character) -> i32 {
-    char.attributes.intelligence
+    (char.attributes.intelligence + char.max_spells_offset).max(0)
 }
 
 pub fn calculate_miracle_slots(char: &Character) -> i32 {
-    char.attributes.faith
+    (char.attributes.faith + char.max_miracles_offset).max(0)
 }
 
 pub fn calculate_armor_class(char: &Character) -> i32 {
@@ -40,7 +41,7 @@ pub fn calculate_armor_class(char: &Character) -> i32 {
 
 pub fn calculate_crit_range(char: &Character) -> i32 {
     let bonus = char.attributes.luck / 2;
-    12 - bonus
+    (12 - bonus + char.crit_range_offset).clamp(1, 12)
 }
 
 pub fn get_origin_traits(origin: Origin) -> Vec<&'static str> {
