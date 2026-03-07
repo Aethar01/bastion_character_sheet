@@ -30,6 +30,7 @@ pub enum Message {
     LoadCharacter,
     SaveFileSelected(Option<PathBuf>),
     LoadFileSelected(Option<PathBuf>),
+    DismissError,
     InventoryAction(usize, text_editor::Action),
     AddAbility,
     RequestDeleteAbility(usize),

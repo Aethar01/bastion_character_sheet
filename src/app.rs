@@ -31,6 +31,7 @@ pub struct CharacterSheet {
     pub ability_editors: Vec<text_editor::Content>,
     pub inventory_editors: Vec<text_editor::Content>,
     pub deleting_ability_index: Option<usize>,
+    pub error_message: Option<String>,
 }
 
 impl Default for CharacterSheet {
@@ -92,6 +93,7 @@ impl Default for CharacterSheet {
             ability_editors,
             inventory_editors,
             deleting_ability_index: None,
+            error_message: None,
         }
     }
 }
@@ -318,53 +320,65 @@ impl CharacterSheet {
             }
             Message::LoadFileSelected(path_opt) => {
                 if let Some(path) = path_opt {
-                    if let Ok(content) = fs::read_to_string(path) {
-                        if let Ok(char) = serde_json::from_str(&content) {
-                            self.character = char;
-                            self.hp_input = self.character.current_hp.to_string();
-                            let s_max = logic::calculate_spell_slots(&self.character);
-                            self.spells_input = s_max
-                                .saturating_sub(self.character.expended_spell_slots)
-                                .to_string();
-                            let m_max = logic::calculate_miracle_slots(&self.character);
-                            self.miracles_input = m_max
-                                .saturating_sub(self.character.expended_miracle_slots)
-                                .to_string();
-                            self.level_input = self.character.level.to_string();
-                            self.tender_input = self.character.tender.to_string();
-                            self.armor_bonus_input = self.character.armor_bonus.to_string();
-                            self.dr_input = self.character.dr.clone();
-                            self.bg_color_input = self.character.background_color.clone();
-                            self.fg_color_input = self.character.foreground_color.clone();
-                            self.accent_color_input = self.character.accent_color.clone();
-                            self.max_hp_offset_input = self.character.max_hp_offset.to_string();
-                            self.speed_offset_input = self.character.speed_offset.to_string();
-                            self.max_inventory_slots_offset_input =
-                                self.character.max_inventory_slots_offset.to_string();
-                            self.max_abilities_offset_input =
-                                self.character.max_abilities_offset.to_string();
-                            self.max_spells_offset_input =
-                                self.character.max_spells_offset.to_string();
-                            self.max_miracles_offset_input =
-                                self.character.max_miracles_offset.to_string();
-                            self.crit_range_offset_input =
-                                self.character.crit_range_offset.to_string();
-                            self.ability_editors = self
-                                .character
-                                .abilities
-                                .iter()
-                                .map(|a| text_editor::Content::with_text(&a.description))
-                                .collect();
-                            self.inventory_editors = self
-                                .character
-                                .inventory
-                                .iter()
-                                .map(|i| text_editor::Content::with_text(i))
-                                .collect();
-                            self.sync_inventory_editors();
+                    match fs::read_to_string(&path) {
+                        Ok(content) => match serde_json::from_str::<Character>(&content) {
+                            Ok(char) => {
+                                self.character = char;
+                                self.hp_input = self.character.current_hp.to_string();
+                                let s_max = logic::calculate_spell_slots(&self.character);
+                                self.spells_input = s_max
+                                    .saturating_sub(self.character.expended_spell_slots)
+                                    .to_string();
+                                let m_max = logic::calculate_miracle_slots(&self.character);
+                                self.miracles_input = m_max
+                                    .saturating_sub(self.character.expended_miracle_slots)
+                                    .to_string();
+                                self.level_input = self.character.level.to_string();
+                                self.tender_input = self.character.tender.to_string();
+                                self.armor_bonus_input = self.character.armor_bonus.to_string();
+                                self.dr_input = self.character.dr.clone();
+                                self.bg_color_input = self.character.background_color.clone();
+                                self.fg_color_input = self.character.foreground_color.clone();
+                                self.accent_color_input = self.character.accent_color.clone();
+                                self.max_hp_offset_input = self.character.max_hp_offset.to_string();
+                                self.speed_offset_input = self.character.speed_offset.to_string();
+                                self.max_inventory_slots_offset_input =
+                                    self.character.max_inventory_slots_offset.to_string();
+                                self.max_abilities_offset_input =
+                                    self.character.max_abilities_offset.to_string();
+                                self.max_spells_offset_input =
+                                    self.character.max_spells_offset.to_string();
+                                self.max_miracles_offset_input =
+                                    self.character.max_miracles_offset.to_string();
+                                self.crit_range_offset_input =
+                                    self.character.crit_range_offset.to_string();
+                                self.ability_editors = self
+                                    .character
+                                    .abilities
+                                    .iter()
+                                    .map(|a| text_editor::Content::with_text(&a.description))
+                                    .collect();
+                                self.inventory_editors = self
+                                    .character
+                                    .inventory
+                                    .iter()
+                                    .map(|i| text_editor::Content::with_text(i))
+                                    .collect();
+                                self.sync_inventory_editors();
+                            }
+                            Err(e) => {
+                                self.error_message =
+                                    Some(format!("Invalid character format: {}", e));
+                            }
+                        },
+                        Err(e) => {
+                            self.error_message = Some(format!("Could not read file: {}", e));
                         }
                     }
                 }
+            }
+            Message::DismissError => {
+                self.error_message = None;
             }
             Message::InventoryAction(idx, action) => {
                 while self.inventory_editors.len() <= idx {

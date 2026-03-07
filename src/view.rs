@@ -3,10 +3,10 @@ use crate::logic;
 use crate::message::{AttributeField, Message, OffsetField};
 use crate::model::{AbilityType, Origin};
 use iced::widget::{
-    button, checkbox, column, container, pick_list, row, scrollable, stack, text, text_editor,
-    text_input, Space,
+    Space, button, checkbox, column, container, pick_list, row, scrollable, stack, text,
+    text_editor, text_input,
 };
-use iced::{alignment, Alignment, Color, Element, Length};
+use iced::{Alignment, Color, Element, Length, alignment};
 
 pub fn view(state: &CharacterSheet) -> Element<'_, Message> {
     let content = scrollable(
@@ -26,11 +26,47 @@ pub fn view(state: &CharacterSheet) -> Element<'_, Message> {
 
     let mut layers = stack![container(content).width(Length::Fill).height(Length::Fill)];
 
-    if state.is_editing {
+    if let Some(error) = &state.error_message {
+        layers = layers.push(view_error_modal(error));
+    } else if state.is_editing {
         layers = layers.push(view_editor(state));
     }
 
     layers.into()
+}
+
+fn view_error_modal(error: &str) -> Element<'_, Message> {
+    let content = column![
+        text("Unable to load character:").size(30),
+        text(error).size(20),
+        button("OK").on_press(Message::DismissError)
+    ]
+    .spacing(20)
+    .padding(20)
+    .align_x(alignment::Horizontal::Center);
+
+    container(
+        container(content)
+            .style(container::bordered_box)
+            .padding(20),
+    )
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .align_x(alignment::Horizontal::Center)
+    .align_y(alignment::Vertical::Center)
+    .style(|_| container::Style {
+        background: Some(
+            Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.8,
+            }
+            .into(),
+        ),
+        ..Default::default()
+    })
+    .into()
 }
 
 fn view_header(state: &CharacterSheet) -> Element<'_, Message> {
