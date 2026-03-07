@@ -18,6 +18,9 @@ pub struct CharacterSheet {
     pub tender_input: String,
     pub armor_bonus_input: String,
     pub dr_input: String,
+    pub bg_color_input: String,
+    pub fg_color_input: String,
+    pub accent_color_input: String,
     pub max_hp_offset_input: String,
     pub speed_offset_input: String,
     pub max_inventory_slots_offset_input: String,
@@ -44,6 +47,9 @@ impl Default for CharacterSheet {
         let tender = character.tender.to_string();
         let armor_bonus = character.armor_bonus.to_string();
         let dr_input = character.dr.clone();
+        let bg_color_input = character.background_color.clone();
+        let fg_color_input = character.foreground_color.clone();
+        let accent_color_input = character.accent_color.clone();
         let max_hp_offset = character.max_hp_offset.to_string();
         let speed_offset = character.speed_offset.to_string();
         let max_inventory_slots_offset = character.max_inventory_slots_offset.to_string();
@@ -73,6 +79,9 @@ impl Default for CharacterSheet {
             tender_input: tender,
             armor_bonus_input: armor_bonus,
             dr_input,
+            bg_color_input,
+            fg_color_input,
+            accent_color_input,
             max_hp_offset_input: max_hp_offset,
             speed_offset_input: speed_offset,
             max_inventory_slots_offset_input: max_inventory_slots_offset,
@@ -119,6 +128,18 @@ impl CharacterSheet {
             Message::DrChanged(val) => {
                 self.dr_input = val.clone();
                 self.character.dr = val;
+            }
+            Message::BgColorChanged(val) => {
+                self.bg_color_input = val.clone();
+                self.character.background_color = val;
+            }
+            Message::FgColorChanged(val) => {
+                self.fg_color_input = val.clone();
+                self.character.foreground_color = val;
+            }
+            Message::AccentColorChanged(val) => {
+                self.accent_color_input = val.clone();
+                self.character.accent_color = val;
             }
             Message::OffsetChanged(field, val) => {
                 let parsed = if val.trim().is_empty() || val.trim() == "+" {
@@ -313,6 +334,9 @@ impl CharacterSheet {
                             self.tender_input = self.character.tender.to_string();
                             self.armor_bonus_input = self.character.armor_bonus.to_string();
                             self.dr_input = self.character.dr.clone();
+                            self.bg_color_input = self.character.background_color.clone();
+                            self.fg_color_input = self.character.foreground_color.clone();
+                            self.accent_color_input = self.character.accent_color.clone();
                             self.max_hp_offset_input = self.character.max_hp_offset.to_string();
                             self.speed_offset_input = self.character.speed_offset.to_string();
                             self.max_inventory_slots_offset_input =

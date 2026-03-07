@@ -135,6 +135,12 @@ pub struct Character {
     pub crit_range_offset: i32,
     #[serde(default)]
     pub dr: String,
+    #[serde(default)]
+    pub background_color: String,
+    #[serde(default)]
+    pub foreground_color: String,
+    #[serde(default)]
+    pub accent_color: String,
     pub expended_spell_slots: i32,
     pub expended_miracle_slots: i32,
     pub inventory: Vec<String>,
@@ -164,6 +170,9 @@ impl Default for Character {
             max_miracles_offset: 0,
             crit_range_offset: 0,
             dr: String::new(),
+            background_color: String::new(),
+            foreground_color: String::new(),
+            accent_color: String::new(),
             expended_spell_slots: 0,
             expended_miracle_slots: 0,
             inventory: vec![String::new(); 5],

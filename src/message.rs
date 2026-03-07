@@ -11,6 +11,9 @@ pub enum Message {
     TenderChanged(String),
     ArmorBonusChanged(String),
     DrChanged(String),
+    BgColorChanged(String),
+    FgColorChanged(String),
+    AccentColorChanged(String),
 
     HpInputChanged(String),
     HpModifierChanged(String),

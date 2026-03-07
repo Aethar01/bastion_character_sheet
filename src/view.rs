@@ -352,6 +352,34 @@ fn view_editor(state: &CharacterSheet) -> Element<'_, Message> {
                     OffsetField::MaxHp
                 ),
             ]
+            .spacing(10),
+            column![
+                text("Theme Colors").size(20),
+                row![
+                    text("Background").width(100),
+                    text_input("#hexcode", &state.bg_color_input)
+                        .on_input(Message::BgColorChanged)
+                        .width(100)
+                ]
+                .spacing(10)
+                .align_y(Alignment::Center),
+                row![
+                    text("Foreground").width(100),
+                    text_input("#hexcode", &state.fg_color_input)
+                        .on_input(Message::FgColorChanged)
+                        .width(100)
+                ]
+                .spacing(10)
+                .align_y(Alignment::Center),
+                row![
+                    text("Accent").width(100),
+                    text_input("#hexcode", &state.accent_color_input)
+                        .on_input(Message::AccentColorChanged)
+                        .width(100)
+                ]
+                .spacing(10)
+                .align_y(Alignment::Center),
+            ]
             .spacing(10)
         ]
         .spacing(40),
