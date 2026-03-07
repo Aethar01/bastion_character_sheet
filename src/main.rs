@@ -10,8 +10,14 @@ use app::CharacterSheet;
 use iced::Theme;
 
 pub fn main() -> iced::Result {
+    let icon = iced::window::icon::from_file_data(include_bytes!("../resources/icon.png"), None).unwrap();
+
     iced::application(CharacterSheet::new, CharacterSheet::update, view::view)
         .title("Bastion Character Sheet")
+        .window(iced::window::Settings {
+            icon: Some(icon),
+            ..Default::default()
+        })
         .theme(theme)
         .run()
 }
