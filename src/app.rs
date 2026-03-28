@@ -5,6 +5,38 @@ use iced::Task;
 use iced::widget::text_editor;
 use rfd::AsyncFileDialog;
 use std::fs;
+use std::path::PathBuf;
+
+#[derive(serde::Serialize, serde::Deserialize, Default)]
+struct AppConfig {
+    last_file_path: Option<PathBuf>,
+}
+
+fn get_config_path() -> PathBuf {
+    if let Some(proj_dirs) = directories::ProjectDirs::from("", "", "BastionCharacterSheet") {
+        let dir = proj_dirs.state_dir().unwrap_or_else(|| proj_dirs.data_local_dir());
+        std::fs::create_dir_all(dir).ok();
+        let mut path = dir.to_path_buf();
+        path.push("config.json");
+        path
+    } else {
+        PathBuf::from("bastion_sheet_config.json")
+    }
+}
+
+fn load_config() -> AppConfig {
+    if let Ok(content) = fs::read_to_string(get_config_path()) {
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        AppConfig::default()
+    }
+}
+
+fn save_config(config: &AppConfig) {
+    if let Ok(content) = serde_json::to_string_pretty(config) {
+        let _ = fs::write(get_config_path(), content);
+    }
+}
 
 pub struct CharacterSheet {
     pub character: Character,
@@ -108,6 +140,15 @@ impl CharacterSheet {
     pub fn new() -> (Self, Task<Message>) {
         let mut sheet = Self::default();
         sheet.sync_inventory_editors();
+
+        let config = load_config();
+        if let Some(path) = config.last_file_path {
+            return (
+                sheet,
+                Task::perform(async { Some(path) }, Message::LoadFileSelected),
+            );
+        }
+
         (sheet, Task::none())
     }
 
@@ -299,6 +340,10 @@ impl CharacterSheet {
                         if let Err(e) = fs::write(path, json) {
                             self.error_message = Some(format!("Could not save file: {}", e));
                         } else {
+                            let config = AppConfig {
+                                last_file_path: Some(path.clone()),
+                            };
+                            save_config(&config);
                             self.notification = Some(format!(
                                 "Character successfully saved to {:?}",
                                 path.file_name().unwrap_or_default()
@@ -354,6 +399,10 @@ impl CharacterSheet {
                             self.error_message = Some(format!("Could not save file: {}", e));
                         } else {
                             self.current_file_path = Some(path.clone());
+                            let config = AppConfig {
+                                last_file_path: Some(path.clone()),
+                            };
+                            save_config(&config);
                             self.notification = Some(format!(
                                 "Character successfully saved to {:?}",
                                 path.file_name().unwrap_or_default()
@@ -368,7 +417,11 @@ impl CharacterSheet {
                         Ok(content) => match serde_json::from_str::<Character>(&content) {
                             Ok(char) => {
                                 self.character = char;
-                                self.current_file_path = Some(path);
+                                self.current_file_path = Some(path.clone());
+                                let config = AppConfig {
+                                    last_file_path: Some(path.clone()),
+                                };
+                                save_config(&config);
                                 self.hp_input = self.character.current_hp.to_string();
                                 let s_max = logic::calculate_spell_slots(&self.character);
                                 self.spells_input = s_max
