@@ -3,10 +3,10 @@ use crate::logic;
 use crate::message::{AttributeField, Message, OffsetField};
 use crate::model::{AbilityType, Origin};
 use iced::widget::{
-    Space, button, checkbox, column, container, pick_list, row, scrollable, stack, text,
-    text_editor, text_input,
+    button, checkbox, column, container, pick_list, row, scrollable, stack, text, text_editor,
+    text_input, Space,
 };
-use iced::{Alignment, Color, Element, Length, alignment};
+use iced::{alignment, Alignment, Color, Element, Length};
 
 pub fn view(state: &CharacterSheet) -> Element<'_, Message> {
     let content = scrollable(
@@ -28,8 +28,35 @@ pub fn view(state: &CharacterSheet) -> Element<'_, Message> {
 
     if let Some(error) = &state.error_message {
         layers = layers.push(view_error_modal(error));
+    } else if let Some(notification) = &state.notification {
+        layers = layers.push(view_notification_modal(notification));
     } else if state.is_editing {
         layers = layers.push(view_editor(state));
+    }
+
+    if state.show_save_menu {
+        let save_as_menu = container(
+            container(
+                button(text("Save As").align_x(alignment::Horizontal::Center))
+                    .on_press(Message::SaveAsCharacter)
+                    .width(Length::Fill),
+            )
+            .style(container::bordered_box)
+            .padding(5)
+            .width(100.0),
+        )
+        .padding(iced::Padding {
+            top: 75.0,
+            right: 110.0,
+            bottom: 0.0,
+            left: 0.0,
+        })
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .align_x(alignment::Horizontal::Right)
+        .align_y(alignment::Vertical::Top);
+
+        layers = layers.push(save_as_menu);
     }
 
     layers.into()
@@ -69,13 +96,60 @@ fn view_error_modal(error: &str) -> Element<'_, Message> {
     .into()
 }
 
+fn view_notification_modal(message: &str) -> Element<'_, Message> {
+    let content = column![
+        text("Success").size(30),
+        text(message).size(20),
+        button("OK").on_press(Message::DismissNotification)
+    ]
+    .spacing(20)
+    .padding(20)
+    .align_x(alignment::Horizontal::Center);
+
+    container(
+        container(content)
+            .style(container::bordered_box)
+            .padding(20),
+    )
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .align_x(alignment::Horizontal::Center)
+    .align_y(alignment::Vertical::Center)
+    .style(|_| container::Style {
+        background: Some(
+            Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.8,
+            }
+            .into(),
+        ),
+        ..Default::default()
+    })
+    .into()
+}
+
 fn view_header(state: &CharacterSheet) -> Element<'_, Message> {
-    row![
+    let save_group = row![
+        button("Save").on_press(Message::SaveCharacter),
+        button("▼").on_press(Message::ToggleSaveMenu),
+    ]
+    .spacing(2)
+    .align_y(Alignment::Center);
+
+    let left_group = row![
         text(&state.character.name).size(30).width(Length::Fill),
         text(format!("Lvl {}", state.character.level)).size(24),
         text(format!("{}", state.character.origin.to_string())).size(24),
         button("Edit Character").on_press(Message::ToggleEditor),
-        button("Save").on_press(Message::SaveCharacter),
+    ]
+    .spacing(20)
+    .align_y(Alignment::Center);
+
+    row![
+        left_group.width(Length::Fill),
+        save_group,
         button("Load").on_press(Message::LoadCharacter),
     ]
     .spacing(20)

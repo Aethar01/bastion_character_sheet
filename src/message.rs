@@ -27,10 +27,13 @@ pub enum Message {
     AdjustMiracles(i32),
 
     SaveCharacter,
+    SaveAsCharacter,
+    ToggleSaveMenu,
     LoadCharacter,
     SaveFileSelected(Option<PathBuf>),
     LoadFileSelected(Option<PathBuf>),
     DismissError,
+    DismissNotification,
     InventoryAction(usize, text_editor::Action),
     AddAbility,
     RequestDeleteAbility(usize),

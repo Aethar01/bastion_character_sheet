@@ -32,6 +32,9 @@ pub struct CharacterSheet {
     pub inventory_editors: Vec<text_editor::Content>,
     pub deleting_ability_index: Option<usize>,
     pub error_message: Option<String>,
+    pub notification: Option<String>,
+    pub current_file_path: Option<std::path::PathBuf>,
+    pub show_save_menu: bool,
 }
 
 impl Default for CharacterSheet {
@@ -94,6 +97,9 @@ impl Default for CharacterSheet {
             inventory_editors,
             deleting_ability_index: None,
             error_message: None,
+            notification: None,
+            current_file_path: None,
+            show_save_menu: false,
         }
     }
 }
@@ -108,6 +114,7 @@ impl CharacterSheet {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ToggleEditor => self.is_editing = !self.is_editing,
+            Message::ToggleSaveMenu => self.show_save_menu = !self.show_save_menu,
             Message::NameChanged(name) => self.character.name = name,
             Message::LevelChanged(lvl) => {
                 self.level_input = lvl;
@@ -286,6 +293,35 @@ impl CharacterSheet {
                 }
             }
             Message::SaveCharacter => {
+                self.show_save_menu = false;
+                if let Some(path) = &self.current_file_path {
+                    if let Ok(json) = serde_json::to_string_pretty(&self.character) {
+                        if let Err(e) = fs::write(path, json) {
+                            self.error_message = Some(format!("Could not save file: {}", e));
+                        } else {
+                            self.notification = Some(format!(
+                                "Character successfully saved to {:?}",
+                                path.file_name().unwrap_or_default()
+                            ));
+                        }
+                    }
+                } else {
+                    let default_name = format!("{}.json", self.character.name);
+                    return Task::perform(
+                        async move {
+                            let file = AsyncFileDialog::new()
+                                .add_filter("json", &["json"])
+                                .set_file_name(&default_name)
+                                .save_file()
+                                .await;
+                            file.map(|f| f.path().to_owned())
+                        },
+                        Message::SaveFileSelected,
+                    );
+                }
+            }
+            Message::SaveAsCharacter => {
+                self.show_save_menu = false;
                 let default_name = format!("{}.json", self.character.name);
                 return Task::perform(
                     async move {
@@ -314,7 +350,15 @@ impl CharacterSheet {
             Message::SaveFileSelected(path_opt) => {
                 if let Some(path) = path_opt {
                     if let Ok(json) = serde_json::to_string_pretty(&self.character) {
-                        let _ = fs::write(path, json);
+                        if let Err(e) = fs::write(&path, json) {
+                            self.error_message = Some(format!("Could not save file: {}", e));
+                        } else {
+                            self.current_file_path = Some(path.clone());
+                            self.notification = Some(format!(
+                                "Character successfully saved to {:?}",
+                                path.file_name().unwrap_or_default()
+                            ));
+                        }
                     }
                 }
             }
@@ -324,6 +368,7 @@ impl CharacterSheet {
                         Ok(content) => match serde_json::from_str::<Character>(&content) {
                             Ok(char) => {
                                 self.character = char;
+                                self.current_file_path = Some(path);
                                 self.hp_input = self.character.current_hp.to_string();
                                 let s_max = logic::calculate_spell_slots(&self.character);
                                 self.spells_input = s_max
@@ -379,6 +424,9 @@ impl CharacterSheet {
             }
             Message::DismissError => {
                 self.error_message = None;
+            }
+            Message::DismissNotification => {
+                self.notification = None;
             }
             Message::InventoryAction(idx, action) => {
                 while self.inventory_editors.len() <= idx {
