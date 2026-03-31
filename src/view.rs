@@ -596,7 +596,7 @@ fn view_ability_browser(state: &CharacterSheet) -> Element<'_, Message> {
         }
     }
 
-    let mut tags_row = row![].spacing(10);
+    let mut tags_row: Vec<Element<'_, Message>> = Vec::new();
     let mut sorted_tags: Vec<String> = all_tags.into_iter().collect();
 
     // Sort logic
@@ -645,10 +645,14 @@ fn view_ability_browser(state: &CharacterSheet) -> Element<'_, Message> {
             None => btn.style(|t, s| iced::widget::button::secondary(t, s)),
         };
 
-        tags_row = tags_row.push(styled_btn.on_press(Message::AbilityBrowserTagToggled(tag)));
+        tags_row.push(
+            styled_btn
+                .on_press(Message::AbilityBrowserTagToggled(tag))
+                .into(),
+        );
     }
 
-    let mut list = column![].spacing(10);
+    let mut list: Vec<Element<'_, Message>> = Vec::new();
 
     let query_lower = state.ability_search_query.to_lowercase();
     for ability in &state.available_abilities {
@@ -704,31 +708,43 @@ fn view_ability_browser(state: &CharacterSheet) -> Element<'_, Message> {
             .size(14)
             .color(Color::from_rgb(0.7, 0.7, 0.7));
 
-        list = list.push(
+        list.push(
             container(column![header, body, desc].spacing(5))
                 .style(container::bordered_box)
                 .padding(10)
-                .width(Length::Fill),
+                .width(400.0)
+                .into(),
         );
     }
 
-    let list_container = container(list).padding(iced::Padding {
-        top: 0.0,
-        right: 15.0,
-        bottom: 0.0,
-        left: 0.0,
-    });
-    let tags_container = container(tags_row).padding(iced::Padding {
-        top: 0.0,
-        right: 15.0,
-        bottom: 15.0,
-        left: 0.0,
-    });
+    let wrapped_tags = iced::widget::Row::with_children(tags_row)
+        .spacing(10)
+        .wrap();
+
+    let wrapped_list = iced::widget::Row::with_children(list).spacing(10).wrap();
+
+    let list_container = container(wrapped_list)
+        .padding(iced::Padding {
+            top: 0.0,
+            right: 15.0,
+            bottom: 0.0,
+            left: 0.0,
+        })
+        .width(Length::Fill)
+        .align_x(alignment::Horizontal::Center);
+
+    let tags_container = container(wrapped_tags)
+        .padding(iced::Padding {
+            top: 0.0,
+            right: 0.0,
+            bottom: 15.0,
+            left: 0.0,
+        })
+        .width(Length::Fill)
+        .align_x(alignment::Horizontal::Center);
 
     let scrollable_list = scrollable(list_container).height(Length::Fill);
-    let scrollable_tags = scrollable(tags_container).direction(
-        iced::widget::scrollable::Direction::Horizontal(iced::widget::scrollable::Scrollbar::new()),
-    );
+    let scrollable_tags = scrollable(tags_container).height(Length::Shrink);
 
     let content = column![
         row![
@@ -749,10 +765,11 @@ fn view_ability_browser(state: &CharacterSheet) -> Element<'_, Message> {
         container(
             container(content)
                 .style(container::bordered_box)
-                .width(800.0)
-                .height(600.0)
+                .width(Length::Fill)
+                .height(Length::Fill)
                 .padding(20),
         )
+        .padding(40)
         .width(Length::Fill)
         .height(Length::Fill)
         .align_x(alignment::Horizontal::Center)
