@@ -2,11 +2,65 @@ use crate::app::CharacterSheet;
 use crate::logic;
 use crate::message::{AttributeField, Message, OffsetField};
 use crate::model::Origin;
+use iced::font;
 use iced::widget::{
     button, checkbox, column, container, opaque, pick_list, row, scrollable, stack, text,
     text_editor, text_input, Space,
 };
-use iced::{alignment, Alignment, Color, Element, Length};
+use iced::{alignment, Alignment, Color, Element, Font, Length};
+
+fn spans_to_rich(spans: &[crate::model::TextSpan], default_italic: bool) -> Element<'_, Message> {
+    let mut lines: Vec<Vec<Element<'_, Message>>> = Vec::new();
+    let mut current_line: Vec<Element<'_, Message>> = Vec::new();
+
+    for span_data in spans {
+        let parts: Vec<&str> = span_data.content.split('\n').collect();
+
+        for (i, part) in parts.iter().enumerate() {
+            if !part.is_empty() {
+                let mut font = Font::default();
+                if span_data.bold {
+                    font.weight = font::Weight::Bold;
+                }
+                if span_data.italic || default_italic {
+                    font.style = iced::font::Style::Italic;
+                }
+                current_line.push(text(part.to_string()).font(font).into());
+            }
+
+            if i < parts.len() - 1 {
+                if !current_line.is_empty() {
+                    lines.push(std::mem::take(&mut current_line));
+                    current_line = Vec::new();
+                }
+                if part.is_empty() {
+                    lines.push(Vec::new());
+                }
+            }
+        }
+    }
+
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+
+    if lines.is_empty() {
+        return text("").into();
+    }
+
+    let line_elements: Vec<Element<'_, Message>> = lines
+        .into_iter()
+        .map(|spans| {
+            if spans.is_empty() {
+                text("").into()
+            } else {
+                row(spans).spacing(0).into()
+            }
+        })
+        .collect();
+
+    column(line_elements).spacing(0).into()
+}
 
 pub fn view(state: &CharacterSheet) -> Element<'_, Message> {
     let content = scrollable(
@@ -703,10 +757,9 @@ fn view_ability_browser(state: &CharacterSheet) -> Element<'_, Message> {
         .spacing(10)
         .align_y(Alignment::Center);
 
-        let body = text(&ability.body).size(16);
-        let desc = text(&ability.desc)
-            .size(14)
-            .color(Color::from_rgb(0.7, 0.7, 0.7));
+        let body = spans_to_rich(&ability.body_spans, false);
+        let desc = spans_to_rich(&ability.desc_spans, true);
+        let desc = container(desc).style(container::bordered_box).padding(5);
 
         list.push(
             container(column![header, body, desc].spacing(5))
@@ -883,10 +936,9 @@ fn view_abilities(state: &CharacterSheet) -> Element<'_, Message> {
             .spacing(10)
             .align_y(Alignment::Center);
 
-            let body = text(&ability.body).size(16);
-            let desc = text(&ability.desc)
-                .size(14)
-                .color(Color::from_rgb(0.7, 0.7, 0.7));
+            let body = spans_to_rich(&ability.body_spans, false);
+            let desc = spans_to_rich(&ability.desc_spans, true);
+            let desc = container(desc).style(container::bordered_box).padding(5);
 
             list = list.push(
                 container(column![header_row, body, desc].spacing(5))
