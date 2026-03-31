@@ -1,4 +1,4 @@
-use crate::model::{AbilityType, Origin};
+use crate::model::Origin;
 use iced::widget::text_editor;
 use std::path::PathBuf;
 
@@ -40,14 +40,20 @@ pub enum Message {
     ConfirmDeleteAbility,
     CancelDeleteAbility,
     AbilityNameChanged(usize, String),
-    AbilityTypeChanged(usize, AbilityType),
     AbilityTagsChanged(usize, String),
+    AbilityBodyChanged(usize, text_editor::Action),
     AbilityDescChanged(usize, text_editor::Action),
     ToggleAbilityPrepared(usize, bool),
     MoveAbilityUp(usize),
     MoveAbilityDown(usize),
     ToggleEditor,
     OffsetChanged(OffsetField, String),
+    ToggleAbilityBrowser,
+    ToggleEditAbilities,
+    AbilityBrowserSearchChanged(String),
+    AbilityBrowserTagToggled(String),
+    ImportAbility(crate::model::Ability),
+    AbilitiesLoaded(Vec<crate::model::Ability>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

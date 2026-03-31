@@ -1,6 +1,6 @@
 use crate::logic;
 use crate::message::{AttributeField, Message};
-use crate::model::{Ability, AbilityType, Character, Origin};
+use crate::model::{Ability, Character, Origin};
 use iced::Task;
 use iced::widget::text_editor;
 use rfd::AsyncFileDialog;
@@ -60,13 +60,19 @@ pub struct CharacterSheet {
     pub max_spells_offset_input: String,
     pub max_miracles_offset_input: String,
     pub crit_range_offset_input: String,
-    pub ability_editors: Vec<text_editor::Content>,
+    pub ability_body_editors: Vec<text_editor::Content>,
+    pub ability_desc_editors: Vec<text_editor::Content>,
     pub inventory_editors: Vec<text_editor::Content>,
     pub deleting_ability_index: Option<usize>,
     pub error_message: Option<String>,
     pub notification: Option<String>,
     pub current_file_path: Option<std::path::PathBuf>,
     pub show_save_menu: bool,
+    pub show_ability_browser: bool,
+    pub is_editing_abilities: bool,
+    pub available_abilities: Vec<Ability>,
+    pub ability_search_query: String,
+    pub ability_selected_tags: std::collections::HashMap<String, crate::model::TagFilterState>,
 }
 
 impl Default for CharacterSheet {
@@ -93,10 +99,15 @@ impl Default for CharacterSheet {
         let max_spells_offset = character.max_spells_offset.to_string();
         let max_miracles_offset = character.max_miracles_offset.to_string();
         let crit_range_offset = character.crit_range_offset.to_string();
-        let ability_editors = character
+        let ability_body_editors = character
             .abilities
             .iter()
-            .map(|a| text_editor::Content::with_text(&a.description))
+            .map(|a| text_editor::Content::with_text(&a.body))
+            .collect();
+        let ability_desc_editors = character
+            .abilities
+            .iter()
+            .map(|a| text_editor::Content::with_text(&a.desc))
             .collect();
         let inventory_editors = character
             .inventory
@@ -125,15 +136,47 @@ impl Default for CharacterSheet {
             max_spells_offset_input: max_spells_offset,
             max_miracles_offset_input: max_miracles_offset,
             crit_range_offset_input: crit_range_offset,
-            ability_editors,
+            ability_body_editors,
+            ability_desc_editors,
             inventory_editors,
             deleting_ability_index: None,
             error_message: None,
             notification: None,
             current_file_path: None,
             show_save_menu: false,
+            show_ability_browser: false,
+            is_editing_abilities: false,
+            available_abilities: Vec::new(),
+            ability_search_query: String::new(),
+            ability_selected_tags: std::collections::HashMap::new(),
         }
     }
+}
+
+async fn load_abilities_task() -> Vec<Ability> {
+    let mut abilities = Vec::new();
+    let path = std::env::current_dir().unwrap_or_default().join("abilities");
+    if let Ok(entries) = std::fs::read_dir(path) {
+        for entry in entries.flatten() {
+            if entry.path().extension().and_then(|s| s.to_str()) == Some("bastion") {
+                if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                    abilities.extend(crate::parser::parse_bastion_abilities(&content));
+                }
+            }
+        }
+    }
+    let config_dir_path = get_config_path().parent().unwrap_or(&std::path::PathBuf::from("")).join("abilities");
+    if let Ok(entries) = std::fs::read_dir(config_dir_path) {
+        for entry in entries.flatten() {
+            if entry.path().extension().and_then(|s| s.to_str()) == Some("bastion") {
+                if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                    abilities.extend(crate::parser::parse_bastion_abilities(&content));
+                }
+            }
+        }
+    }
+    abilities.sort_by(|a, b| a.name.cmp(&b.name));
+    abilities
 }
 
 impl CharacterSheet {
@@ -142,14 +185,20 @@ impl CharacterSheet {
         sheet.sync_inventory_editors();
 
         let config = load_config();
+        
+        let load_abs_task = Task::perform(load_abilities_task(), Message::AbilitiesLoaded);
+
         if let Some(path) = config.last_file_path {
             return (
                 sheet,
-                Task::perform(async { Some(path) }, Message::LoadFileSelected),
+                Task::batch(vec![
+                    Task::perform(async { Some(path) }, Message::LoadFileSelected),
+                    load_abs_task,
+                ]),
             );
         }
 
-        (sheet, Task::none())
+        (sheet, load_abs_task)
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -450,11 +499,17 @@ impl CharacterSheet {
                                     self.character.max_miracles_offset.to_string();
                                 self.crit_range_offset_input =
                                     self.character.crit_range_offset.to_string();
-                                self.ability_editors = self
+                                self.ability_body_editors = self
                                     .character
                                     .abilities
                                     .iter()
-                                    .map(|a| text_editor::Content::with_text(&a.description))
+                                    .map(|a| text_editor::Content::with_text(&a.body))
+                                    .collect();
+                                self.ability_desc_editors = self
+                                    .character
+                                    .abilities
+                                    .iter()
+                                    .map(|a| text_editor::Content::with_text(&a.desc))
                                     .collect();
                                 self.inventory_editors = self
                                     .character
@@ -501,12 +556,13 @@ impl CharacterSheet {
             Message::AddAbility => {
                 self.character.abilities.push(Ability {
                     name: "New Ability".to_string(),
-                    ability_type: AbilityType::Passive,
                     tags: String::new(),
-                    description: String::new(),
+                    body: String::new(),
+                    desc: String::new(),
                     prepared: false,
                 });
-                self.ability_editors.push(text_editor::Content::new());
+                self.ability_body_editors.push(text_editor::Content::new());
+                self.ability_desc_editors.push(text_editor::Content::new());
             }
             Message::RequestDeleteAbility(idx) => {
                 self.deleting_ability_index = Some(idx);
@@ -516,8 +572,9 @@ impl CharacterSheet {
                     if idx < self.character.abilities.len() {
                         self.character.abilities.remove(idx);
                     }
-                    if idx < self.ability_editors.len() {
-                        self.ability_editors.remove(idx);
+                    if idx < self.ability_body_editors.len() {
+                        self.ability_body_editors.remove(idx);
+                        self.ability_desc_editors.remove(idx);
                     }
                 }
                 self.deleting_ability_index = None;
@@ -530,21 +587,24 @@ impl CharacterSheet {
                     ab.name = val;
                 }
             }
-            Message::AbilityTypeChanged(idx, val) => {
-                if let Some(ab) = self.character.abilities.get_mut(idx) {
-                    ab.ability_type = val;
-                }
-            }
             Message::AbilityTagsChanged(idx, val) => {
                 if let Some(ab) = self.character.abilities.get_mut(idx) {
                     ab.tags = val;
                 }
             }
-            Message::AbilityDescChanged(idx, action) => {
-                if let Some(editor) = self.ability_editors.get_mut(idx) {
+            Message::AbilityBodyChanged(idx, action) => {
+                if let Some(editor) = self.ability_body_editors.get_mut(idx) {
                     editor.perform(action);
                     if let Some(ab) = self.character.abilities.get_mut(idx) {
-                        ab.description = editor.text();
+                        ab.body = editor.text();
+                    }
+                }
+            }
+            Message::AbilityDescChanged(idx, action) => {
+                if let Some(editor) = self.ability_desc_editors.get_mut(idx) {
+                    editor.perform(action);
+                    if let Some(ab) = self.character.abilities.get_mut(idx) {
+                        ab.desc = editor.text();
                     }
                 }
             }
@@ -556,7 +616,8 @@ impl CharacterSheet {
             Message::MoveAbilityUp(idx) => {
                 if idx > 0 && idx < self.character.abilities.len() {
                     self.character.abilities.swap(idx, idx - 1);
-                    self.ability_editors.swap(idx, idx - 1);
+                    self.ability_body_editors.swap(idx, idx - 1);
+                    self.ability_desc_editors.swap(idx, idx - 1);
 
                     if let Some(del_idx) = self.deleting_ability_index {
                         if del_idx == idx {
@@ -570,7 +631,8 @@ impl CharacterSheet {
             Message::MoveAbilityDown(idx) => {
                 if idx < self.character.abilities.len() - 1 {
                     self.character.abilities.swap(idx, idx + 1);
-                    self.ability_editors.swap(idx, idx + 1);
+                    self.ability_body_editors.swap(idx, idx + 1);
+                    self.ability_desc_editors.swap(idx, idx + 1);
 
                     if let Some(del_idx) = self.deleting_ability_index {
                         if del_idx == idx {
@@ -580,6 +642,39 @@ impl CharacterSheet {
                         }
                     }
                 }
+            }
+            Message::ToggleAbilityBrowser => {
+                self.show_ability_browser = !self.show_ability_browser;
+            }
+            Message::ToggleEditAbilities => {
+                self.is_editing_abilities = !self.is_editing_abilities;
+            }
+            Message::AbilityBrowserSearchChanged(query) => {
+                self.ability_search_query = query;
+            }
+            Message::AbilityBrowserTagToggled(tag) => {
+                match self.ability_selected_tags.get(&tag) {
+                    None => {
+                        self.ability_selected_tags.insert(tag, crate::model::TagFilterState::Include);
+                    }
+                    Some(crate::model::TagFilterState::Include) => {
+                        self.ability_selected_tags.insert(tag, crate::model::TagFilterState::Exclude);
+                    }
+                    Some(crate::model::TagFilterState::Exclude) => {
+                        self.ability_selected_tags.remove(&tag);
+                    }
+                }
+            }
+            Message::ImportAbility(ability) => {
+                let body = ability.body.clone();
+                let desc = ability.desc.clone();
+                self.character.abilities.push(ability);
+                self.ability_body_editors.push(text_editor::Content::with_text(&body));
+                self.ability_desc_editors.push(text_editor::Content::with_text(&desc));
+                self.show_ability_browser = false;
+            }
+            Message::AbilitiesLoaded(loaded) => {
+                self.available_abilities = loaded;
             }
         }
         Task::none()

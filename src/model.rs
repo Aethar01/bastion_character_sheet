@@ -72,40 +72,22 @@ impl Default for Attributes {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
-pub enum AbilityType {
-    #[default]
-    Passive,
-    Maneuver,
-    Spell,
-    Miracle,
-}
-
-impl std::fmt::Display for AbilityType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl AbilityType {
-    pub fn all() -> [AbilityType; 4] {
-        [
-            AbilityType::Passive,
-            AbilityType::Maneuver,
-            AbilityType::Spell,
-            AbilityType::Miracle,
-        ]
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Ability {
     pub name: String,
-    pub description: String,
-    pub ability_type: AbilityType,
+    #[serde(default)]
+    pub body: String,
+    #[serde(default)]
+    pub desc: String,
     pub tags: String,
     #[serde(default)]
     pub prepared: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TagFilterState {
+    Include,
+    Exclude,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

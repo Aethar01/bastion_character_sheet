@@ -4,6 +4,7 @@ mod app;
 mod logic;
 mod message;
 mod model;
+mod parser;
 mod view;
 
 use app::CharacterSheet;
