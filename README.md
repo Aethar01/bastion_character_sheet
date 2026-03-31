@@ -13,7 +13,7 @@ To add an ability to the ability browser, create a folder "abilities" in the sam
     Example description
   ],
   body: [
-    *Requires: Example*
+    *Requires:* Example
 
     Example body
   ]
