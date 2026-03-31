@@ -1,5 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextSpan {
+    pub content: String,
+    pub bold: bool,
+    pub italic: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Origin {
     #[default]
@@ -82,6 +89,10 @@ pub struct Ability {
     pub tags: String,
     #[serde(default)]
     pub prepared: bool,
+    #[serde(default, skip_serializing)]
+    pub body_spans: Vec<TextSpan>,
+    #[serde(default, skip_serializing)]
+    pub desc_spans: Vec<TextSpan>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

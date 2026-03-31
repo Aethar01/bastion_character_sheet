@@ -1,6 +1,7 @@
 use crate::logic;
 use crate::message::{AttributeField, Message};
 use crate::model::{Ability, Character, Origin};
+use crate::parser;
 use iced::Task;
 use iced::widget::text_editor;
 use rfd::AsyncFileDialog;
@@ -109,14 +110,21 @@ impl Default for CharacterSheet {
             .iter()
             .map(|a| text_editor::Content::with_text(&a.desc))
             .collect();
-        let inventory_editors = character
+        
+        let mut character_with_spans = character;
+        for ab in &mut character_with_spans.abilities {
+            ab.body_spans = parser::process_text(&ab.body);
+            ab.desc_spans = parser::process_text(&ab.desc);
+        }
+        
+        let inventory_editors = character_with_spans
             .inventory
             .iter()
             .map(|i| text_editor::Content::with_text(i))
             .collect();
 
         Self {
-            character,
+            character: character_with_spans,
             is_editing: false,
             hp_input: hp,
             hp_modifier: "1".to_string(),
@@ -511,6 +519,10 @@ impl CharacterSheet {
                                     .iter()
                                     .map(|a| text_editor::Content::with_text(&a.desc))
                                     .collect();
+                                for ab in &mut self.character.abilities {
+                                    ab.body_spans = parser::process_text(&ab.body);
+                                    ab.desc_spans = parser::process_text(&ab.desc);
+                                }
                                 self.inventory_editors = self
                                     .character
                                     .inventory
@@ -560,6 +572,8 @@ impl CharacterSheet {
                     body: String::new(),
                     desc: String::new(),
                     prepared: false,
+                    body_spans: Vec::new(),
+                    desc_spans: Vec::new(),
                 });
                 self.ability_body_editors.push(text_editor::Content::new());
                 self.ability_desc_editors.push(text_editor::Content::new());
@@ -596,7 +610,9 @@ impl CharacterSheet {
                 if let Some(editor) = self.ability_body_editors.get_mut(idx) {
                     editor.perform(action);
                     if let Some(ab) = self.character.abilities.get_mut(idx) {
-                        ab.body = editor.text();
+                        let text = editor.text();
+                        ab.body = text.clone();
+                        ab.body_spans = parser::process_text(&text);
                     }
                 }
             }
@@ -604,7 +620,9 @@ impl CharacterSheet {
                 if let Some(editor) = self.ability_desc_editors.get_mut(idx) {
                     editor.perform(action);
                     if let Some(ab) = self.character.abilities.get_mut(idx) {
-                        ab.desc = editor.text();
+                        let text = editor.text();
+                        ab.desc = text.clone();
+                        ab.desc_spans = parser::process_text(&text);
                     }
                 }
             }
@@ -668,7 +686,12 @@ impl CharacterSheet {
             Message::ImportAbility(ability) => {
                 let body = ability.body.clone();
                 let desc = ability.desc.clone();
-                self.character.abilities.push(ability);
+                let body_spans = ability.body_spans.clone();
+                let desc_spans = ability.desc_spans.clone();
+                let mut new_ability = ability;
+                new_ability.body_spans = body_spans;
+                new_ability.desc_spans = desc_spans;
+                self.character.abilities.push(new_ability);
                 self.ability_body_editors.push(text_editor::Content::with_text(&body));
                 self.ability_desc_editors.push(text_editor::Content::with_text(&desc));
                 self.show_ability_browser = false;
